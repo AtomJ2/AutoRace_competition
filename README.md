@@ -51,5 +51,7 @@ Follow these steps to build and launch the project:
 ## 🛠️ Dependencies
 
 - Python 3.x
-- ROS2 (Humble, Harmonic, or another version compatible with your environment)
+- ROS2 Humble
+- RViz
+- Gazebo Harmonic
 - Libraries specified in `requirements.txt`
