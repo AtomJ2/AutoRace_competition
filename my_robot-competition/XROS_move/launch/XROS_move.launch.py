@@ -41,11 +41,11 @@ def generate_launch_description():
         )
     
     return LaunchDescription([
+        # launches
         camera_calibration,
 
         # my_nodes
         pid_reg,
         detect_line,
         detector_sign,
-
     ])

@@ -6,8 +6,9 @@ from rclpy.node import Node
 from cv_bridge import CvBridge
 from std_msgs.msg import Float64
 from std_msgs.msg import Bool
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, String
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Image
 from math import pi
 
@@ -21,10 +22,13 @@ class Controller(Node):
 					('Ki', 0.0001),
 					('Kd', 0.000),
 					('desiredV', 0.25),])
+		self.obst = False
 					
 		self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
 		self.subscription = self.create_subscription(Float64, '/detect/line', self.move_Controller, 5)
 		self.subscript_traffic = self.create_subscription(Image, '/color/image', self.traffic_light, 1)
+		self.laser_scan_sub = self.create_subscription(LaserScan, '/scan', self.get_distance, 1)
+		self.finish_pub = self.create_publisher(String, '/robot_finish', 1)
 
 		self.yolo_traffic = self.create_subscription(Int32, '/comand', self.sign_detect, 10)
 
@@ -42,7 +46,14 @@ class Controller(Node):
 		self.target = None
 		self.right = None
 		self.count_max = 4
+		self.count_obst_max = 5
+		self.obst_counter = self.count_obst_max
 		self.counter = self.count_max
+		self.dir = True
+		self.distance = 0.57
+		self.after_car = False
+		self.prev_dist = 10000.0
+		self.man = False
 		
 
 	def sign_detect(self, msg):
@@ -50,8 +61,20 @@ class Controller(Node):
 			self.right = True
 		elif msg.data == 1:
 			self.right = False
+		elif msg.data == 4:
+			self.obst = True
+		elif msg.data == 3 and self.after_car:
+			self.obst = True
+		elif msg.data == 5:
+			self.man = True
 		else:
 			self.right = None
+		if (self.man == True and msg.data == 4):
+			self.man = False
+			self.distance = 0.68
+			self.obst = False
+			self.finish_pub.publish(String(data = 'XROS'))
+		
 
 	def traffic_light(self, image):
 		if self.light == False:
@@ -71,9 +94,9 @@ class Controller(Node):
 		
 	def move_Controller(self, msg):
 		if self.light==True:
-			if (self.right!= None and self.counter==self.count_max) or (self.counter < self.count_max and self.counter > 0):	
+			if (self.right!= None and self.counter==self.count_max) or (self.counter < self.count_max and self.counter > 0) and (self.obst == False):	
 				w = ((-1) if self.right else (1))*pi/6
-				x = 0.085
+				x = 0.083
 				self.twist.linear.x = x
 				self.twist.angular.z = float(w)
 				self.publisher_.publish(self.twist)
@@ -88,7 +111,33 @@ class Controller(Node):
 
 			if self.PidUp==True and self.counter==self.count_max:
 				self.iteratePID(msg)
-			
+
+	def get_distance(self,msg):
+		if (self.obst):
+			front_distance = np.min(np.concatenate((msg.ranges[345:360], msg.ranges[0:15]), axis = 0))
+			w = ((1) if self.dir else (-1))*pi/4
+			if front_distance < self.distance:
+				self.twist.linear.x = 0.08
+				self.twist.angular.z = float(w)
+				self.publisher_.publish(self.twist)
+			elif (self.prev_dist<self.distance):
+				self.twist.linear.x = 0.08
+				self.twist.angular.z = float(-w*3)
+				self.publisher_.publish(self.twist)
+				self.dir = False
+			if self.man:
+				front_distance = np.min(np.concatenate((msg.ranges[339:360], msg.ranges[0:22]), axis = 0))
+				self.distance = 1.3
+				self.get_logger().info(f'Расстояние:{front_distance}')
+				if(front_distance < self.distance):
+					self.twist.linear.x = 0.0
+					self.twist.angular.z = float(0)
+					self.publisher_.publish(self.twist)
+
+			self.prev_dist=front_distance
+
+
+
 	def iteratePID(self, msg):
 		'''This PID controller only calculates the angular. Velocity with constant speed of v. 
 		   The value of v can be specified by giving in parameter or using the pre-defined value defined above.'''
@@ -125,7 +174,7 @@ class Controller(Node):
 		self.old_e = err
 			
 		# Update
-		self.twist.linear.x = self.desiredV *  (1 - k_w_max*abs(w)/w_max)
+		self.twist.linear.x = self.desiredV *  (1 - k_w_max*abs(w)/w_max)*0.92
 		self.twist.angular.z = float(w)
 			#self.get_logger().info('Message data: %lf' % self.twist.linear.x)
 			#self.get_logger().info('Message data: %lf' % self.twist.angular.z)
