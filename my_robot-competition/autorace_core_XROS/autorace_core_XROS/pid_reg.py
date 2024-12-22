@@ -6,8 +6,9 @@ from rclpy.node import Node
 from cv_bridge import CvBridge
 from std_msgs.msg import Float64
 from std_msgs.msg import Bool
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, String
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Image
 from math import pi
 
@@ -21,10 +22,12 @@ class Controller(Node):
 					('Ki', 0.0001),
 					('Kd', 0.000),
 					('desiredV', 0.25),])
+		self.obst = False
 					
 		self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
 		self.subscription = self.create_subscription(Float64, '/detect/line', self.move_Controller, 5)
 		self.subscript_traffic = self.create_subscription(Image, '/color/image', self.traffic_light, 1)
+		self.finish_pub = self.create_publisher(String, '/robot_finish', 1)
 
 		self.yolo_traffic = self.create_subscription(Int32, '/comand', self.sign_detect, 10)
 
@@ -42,7 +45,14 @@ class Controller(Node):
 		self.target = None
 		self.right = None
 		self.count_max = 4
+		self.count_obst_max = 5
+		self.obst_counter = self.count_obst_max
 		self.counter = self.count_max
+		self.dir = True
+		self.distance = 0.57
+		self.after_car = False
+		self.prev_dist = 10000.0
+		self.man = False
 		
 
 	def sign_detect(self, msg):
@@ -50,6 +60,18 @@ class Controller(Node):
 			self.right = True
 		elif msg.data == 1:
 			self.right = False
+		elif msg.data == 4:
+			self.after_car = True
+		elif msg.data == 3 and self.after_car:
+			self.obst = True
+			self.finish_pub.publish(String(data = 'XROS'))
+			rclpy.shutdown()
+			self.twist.linear.x = 0
+			self.twist.angular.z = float(0)
+			self.publisher_.publish(self.twist)
+
+		elif msg.data == 5:
+			self.man = True
 		else:
 			self.right = None
 

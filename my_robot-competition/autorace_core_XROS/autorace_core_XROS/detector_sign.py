@@ -131,6 +131,34 @@ class Controller(Node):
 				conf = class_conf[decoder_class['left']]
 				#self.get_logger().info(f'Left, {d}, {conf}')
 				self.sign.data = 1
+			
+			elif (decoder_class['stage_3'] in class_distances) and (class_conf[decoder_class['stage_3']] > 0.65) and\
+				 									 (class_distances[decoder_class['stage_3']] <= 0.85)  and (class_distances[decoder_class['stage_3']] >= 0.2):
+				d = class_distances[decoder_class['stage_3']]
+				conf = class_conf[decoder_class['stage_3']]
+				#self.get_logger().info(f'Left, {d}, {conf}')
+				self.sign.data = 3
+
+			elif (decoder_class['stage_4'] in class_distances) and (class_conf[decoder_class['stage_4']] > 0.65) and\
+				 									 (class_distances[decoder_class['stage_4']] <= 0.83)  and (class_distances[decoder_class['stage_4']] >= 0.45):
+				d = class_distances[decoder_class['stage_4']]
+				conf = class_conf[decoder_class['stage_4']]
+				#self.get_logger().info(f'Left, {d}, {conf}')
+				self.sign.data = 5
+
+			elif (decoder_class['man'] in class_distances) and (class_conf[decoder_class['man']] > 0.65) and\
+				 									 (class_distances[decoder_class['man']] <= 0.83):
+				d = class_distances[decoder_class['man']]
+				conf = class_conf[decoder_class['man']]
+				#self.get_logger().info(f'Left, {d}, {conf}')
+				self.sign.data = 5
+
+			elif (decoder_class['car'] in class_distances) and (class_conf[decoder_class['car']] > 0.65) and\
+				 									 (class_distances[decoder_class['car']] <= 1.0)  and (class_distances[decoder_class['car']] >= 0.40):
+				d = class_distances[decoder_class['car']]
+				conf = class_conf[decoder_class['car']]
+				#self.get_logger().info(f'Left, {d}, {conf}')
+				self.sign.data = 4
 
 			else:
 				self.sign.data = 0

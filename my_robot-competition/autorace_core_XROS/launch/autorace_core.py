@@ -11,9 +11,6 @@ def generate_launch_description():
     camera_directory = get_package_share_directory('autorace_camera')
     move_directory = get_package_share_directory('autorace_core_XROS')
 
-    autorace_sim = IncludeLaunchDescription(PythonLaunchDescriptionSource(
-        os.path.join(robot_directory, 'launch', 'autorace_2023.launch.py')
-    ))
     camera_calibration = IncludeLaunchDescription(PythonLaunchDescriptionSource(
         os.path.join(camera_directory, 'launch', 'extrinsic_camera_calibration.launch.py')
     ))
@@ -45,7 +42,6 @@ def generate_launch_description():
     
     return LaunchDescription([
         # launches
-        autorace_sim,
         camera_calibration,
 
         # my_nodes
@@ -53,11 +49,4 @@ def generate_launch_description():
         detect_line,
         detector_sign,
 
-        TimerAction(
-            period= 5.0,
-            actions=[Node(
-                package= 'referee_console',
-                executable= 'mission_autorace_2023_referee',
-                name='mission_autorace_2023_referee'
-            )])
     ])
