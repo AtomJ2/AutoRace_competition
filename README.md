@@ -50,7 +50,7 @@ Follow these steps to build and launch the project:
 
 ## 🛠️ Dependencies
 
-- Python 3.x
+- Python 3.10.12
 - ROS2 Humble
 - RViz
 - Gazebo Harmonic
