@@ -43,7 +43,7 @@ Follow these steps to build and launch the project:
 3. **Launch the main application using `ros2 launch`:**
 
    ```bash
-   ros2 launch XROS_move XROS_move.launch.py
+   ros2 launch autorace_core_XROS_move autorace_core.py
    ```
 
 ---
