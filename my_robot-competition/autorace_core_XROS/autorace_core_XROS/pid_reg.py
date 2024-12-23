@@ -50,10 +50,11 @@ class Controller(Node):
 		self.obst_counter = self.count_obst_max
 		self.counter = self.count_max
 		self.dir = True
-		self.distance = 0.57
+		self.distance = 0.4
 		self.after_car = False
 		self.prev_dist = 10000.0
 		self.man = False
+		self.front_distance = 1000.0
 		
 
 	def sign_detect(self, msg):
@@ -71,7 +72,7 @@ class Controller(Node):
 			self.right = None
 		if (self.man == True and msg.data == 4):
 			self.man = False
-			self.distance = 0.68
+			self.distance = 0.3
 			self.obst = False
 			self.finish_pub.publish(String(data = 'XROS'))
 		
@@ -108,33 +109,32 @@ class Controller(Node):
 
 			if self.counter == 0:
 				self.counter = self.count_max
-
-			if self.PidUp==True and self.counter==self.count_max:
+			if self.PidUp==True and self.counter==self.count_max and (self.front_distance > self.distance or self.prev_dist > self.prev_dist):
 				self.iteratePID(msg)
 
 	def get_distance(self,msg):
 		if (self.obst):
-			front_distance = np.min(np.concatenate((msg.ranges[345:360], msg.ranges[0:15]), axis = 0))
+			self.front_distance = np.min(np.concatenate((msg.ranges[345:360], msg.ranges[0:15]), axis = 0))
 			w = ((1) if self.dir else (-1))*pi/4
-			if front_distance < self.distance:
-				self.twist.linear.x = 0.08
+			if self.front_distance < self.distance:
+				self.twist.linear.x = 0.09
 				self.twist.angular.z = float(w)
 				self.publisher_.publish(self.twist)
 			elif (self.prev_dist<self.distance):
-				self.twist.linear.x = 0.08
+				self.twist.linear.x = 0.085
 				self.twist.angular.z = float(-w*3)
 				self.publisher_.publish(self.twist)
 				self.dir = False
 			if self.man:
-				front_distance = np.min(np.concatenate((msg.ranges[339:360], msg.ranges[0:22]), axis = 0))
-				self.distance = 0.5
-				self.get_logger().info(f'Расстояние:{front_distance}')
-				if(front_distance < self.distance):
+				self.front_distance = np.min(np.concatenate((msg.ranges[345:360], msg.ranges[0:15]), axis = 0))
+				self.distance = 0.4
+				self.get_logger().info(f'Расстояние:{self.front_distance}')
+				if(self.front_distance < self.distance):
 					self.twist.linear.x = 0.0
 					self.twist.angular.z = float(0)
 					self.publisher_.publish(self.twist)
 
-			self.prev_dist=front_distance
+			self.prev_dist=self.front_distance
 
 
 
